@@ -9,6 +9,6 @@ class RequestGetChatHistory extends ChatEvent {
 
 class RequestPostTextChat extends ChatEvent {
   final int conversationId;
-  final chat_types.TextMessage message;
+  final chat_model.TextMessage message;
   RequestPostTextChat({required this.conversationId, required this.message});
 }

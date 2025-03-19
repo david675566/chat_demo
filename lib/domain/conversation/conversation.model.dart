@@ -1,11 +1,9 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart';
-// ignore: depend_on_referenced_packages
-import 'package:flutter_chat_types/flutter_chat_types.dart' as chat_type;
+import 'package:flutter_chatflow/models.dart';
 
 class ConversationModel extends Equatable {
   final int id;
-  final List<chat_type.User> participants;
+  final List<ChatUser> participants;
   final String lastMessage;
   final DateTime timestamp;
 
@@ -23,7 +21,7 @@ class ConversationModel extends Equatable {
     id: map['id'],
     participants:
         (map['participants'] as List)
-            .map((e) => chat_type.User(id: e['userId'].toString(), firstName: e['user'], imageUrl: e['avatar']))
+            .map((e) => ChatUser(userID: e['userId'].toString(), name: e['user'], photoUrl: e['avatar']))
             .toList(),
     lastMessage: map['lastMessage'] ?? "",
     timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
