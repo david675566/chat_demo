@@ -47,10 +47,6 @@ dependencies:
   uuid: ^4.5.1
   dio_cache_interceptor: ^3.5.1
   tostore: ^1.8.8
-  avatar_stack: ^3.0.0
-  chat_bubbles: ^1.7.0
-  flutter_chatflow: ^2.0.2
-  chatview: ^2.4.0
 
 dev_dependencies:
   flutter_test:
