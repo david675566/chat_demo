@@ -51,6 +51,7 @@ class ChatRoomView extends StatelessWidget {
                     RequestPostTextChat(conversationId: conversationId, message: textMessage),
                   );
                 },
+                // onAttachmentPressed: _handleOnAttachmentPressed,
               );
             },
           ),
