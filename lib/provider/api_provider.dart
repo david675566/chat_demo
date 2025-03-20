@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
 
+import 'package:chat_demo/secret/secret.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
 class ApiProvider {
-  static const String baseUrl = "localhost:8080";
+  static const String baseUrl = secretBaseUrl;
   // Cache
   static final CacheOptions cacheOptions = CacheOptions(
     // A default store is required for interceptor.
@@ -48,7 +48,7 @@ class ApiProvider {
   static final Dio _dio = Dio()..interceptors.addAll([dioLogger, DioCacheInterceptor(options: cacheOptions)]);
 
   Future<List> fetchConversations() {
-    final uri = Uri.http(baseUrl, '/local-mock/conversations');
+    final uri = Uri.http(baseUrl, '/conversations');
     debugPrint("Fetching from ${uri.toString()}");
 
     return _dio
@@ -65,7 +65,7 @@ class ApiProvider {
   }
 
   Future<List> fetchMessages(int conversationId, {bool refresh = false}) {
-    final uri = Uri.http(baseUrl, '/local-mock/messages', {'conversationId': conversationId.toString()});
+    final uri = Uri.http(baseUrl, '/messages', {'conversationId': conversationId.toString()});
     debugPrint("Fetching from ${uri.toString()}");
 
     return _dio
@@ -82,11 +82,11 @@ class ApiProvider {
   }
 
   Future<Response> postMessage(int conversationId, Map messageJson) {
-    final uri = Uri.http(baseUrl, '/local-mock/conversations/$conversationId/messages/create');
+    final uri = Uri.http(baseUrl, '/conversations/$conversationId/messages/create');
     debugPrint("Fetching from ${uri.toString()}");
 
     return _dio
-        .postUri(uri, data: jsonEncode(messageJson))
+        .postUri(uri, data: messageJson)
         .then(
           (value) {
             return value;
@@ -99,11 +99,11 @@ class ApiProvider {
   }
 
   Future<Response> reactMessage(int conversationId, Map body) {
-    final uri = Uri.http(baseUrl, '/local-mock/conversations/$conversationId/messages/reaction');
+    final uri = Uri.http(baseUrl, '/conversations/$conversationId/messages/reaction');
     debugPrint("Fetching from ${uri.toString()}");
 
     return _dio
-        .postUri(uri, data: jsonEncode(body))
+        .patchUri(uri, data: body)
         .then(
           (value) {
             return value;

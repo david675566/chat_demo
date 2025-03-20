@@ -29,13 +29,13 @@ class ChatRepository {
     _messages[targetIdx].metadata?[emojiString!] += 1;
 
     final targetMessage = _messages[targetIdx];
-    int hashIdentifier;
+    String identifier;
     if (targetMessage is chat_types.ImageMessage) {
-      hashIdentifier = targetMessage.uri.hashCode;
+      identifier = targetMessage.uri+targetMessage.author.firstName!;
     } else {
-      hashIdentifier = (targetMessage as chat_types.TextMessage).text.hashCode;
+      identifier = (targetMessage as chat_types.TextMessage).text+targetMessage.author.firstName!;
     }
-    final body = {"reaction": emojiString, "operation": "add", "hashIdentifier": hashIdentifier};
+    final body = {"reaction": emojiString, "operation": "add", "identifier": identifier};
 
     ApiProvider().reactMessage(conversationId, body);
     return _messages;

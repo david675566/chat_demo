@@ -9,7 +9,6 @@ import 'package:jiffy/jiffy.dart';
 // local
 import 'package:chat_demo/domain/conversation/conversation.bloc.dart';
 import 'package:chat_demo/domain/conversation/conversation.model.dart';
-import 'package:chat_demo/widget/user_avatar.dart';
 
 class ConversationsView extends StatefulWidget {
   const ConversationsView({super.key});

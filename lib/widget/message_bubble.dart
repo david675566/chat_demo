@@ -120,6 +120,7 @@ class MessageWidget extends StatelessWidget {
       child: Container(
         constraints: BoxConstraints(maxWidth: messageWidth),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!isOutgoing)
