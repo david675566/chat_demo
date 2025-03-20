@@ -8,30 +8,55 @@ class ChatRepository {
   );
 
   // would need a cache to temp. stores all histories.
-  final List<chat_types.Message> messages = [];
+  final List<chat_types.Message> _messages = [];
 
+  Map<String, String> emojiToStringMap = {'👍': 'like', '❤️': 'love', '😆': 'laugh'};
+
+  // Get all messages
   Future<List<chat_types.Message>> fetchMessages(int conversationId) async {
     // get the messages
     final res = await ApiProvider().fetchMessages(conversationId);
-    messages.clear();
-    messages.addAll(res.map((e) => fromChatJson(e)).toList().reversed);
-    return messages;
+    _messages.clear();
+    _messages.addAll(res.map((e) => fromChatJson(e)).toList().reversed);
+    return _messages;
   }
 
+  // Message Reaction
+  List<chat_types.Message> reactMessage(int conversationId, String messageId, String reaction) {
+    final emojiString = emojiToStringMap[reaction];
+    // modify local cache
+    final targetIdx = _messages.indexWhere((element) => element.id == messageId);
+    _messages[targetIdx].metadata?[emojiString!] += 1;
+
+    final targetMessage = _messages[targetIdx];
+    int hashIdentifier;
+    if (targetMessage is chat_types.ImageMessage) {
+      hashIdentifier = targetMessage.uri.hashCode;
+    } else {
+      hashIdentifier = (targetMessage as chat_types.TextMessage).text.hashCode;
+    }
+    final body = {"reaction": emojiString, "operation": "add", "hashIdentifier": hashIdentifier};
+
+    ApiProvider().reactMessage(conversationId, body);
+    return _messages;
+  }
+
+  // Post Message
   // Use one-shot stream to track sending progress.
   Stream<List<chat_types.Message>> postTextMessage(int conversationId, chat_types.TextMessage message) async* {
     final messageId = message.id;
-    messages.insert(0, message);
-    yield messages;
+    _messages.insert(0, message);
+    yield _messages;
 
+    // I'm tend not to modify the original json, stay with the flow like I can't access backend.
     final body = {
       'conversationId': conversationId,
-      'userId': int.parse(message.author.id),
-      'user': message.author.firstName,
-      "avatar": message.author.imageUrl,
+      'userId': int.parse(currentUser.id),
+      'user': currentUser.firstName,
+      "avatar": currentUser.imageUrl,
       "messageType": "text",
       "message": message.text,
-      "reactions": {"like": 0, "love": 0, "laugh": 0},
+      "reactions": message.metadata?['reactions'] ?? {"like": 0, "love": 0, "laugh": 0},
       "timestamp": DateTime.now().millisecondsSinceEpoch,
     };
 
@@ -39,15 +64,15 @@ class ChatRepository {
     yield await ApiProvider()
         .postMessage(conversationId, body)
         .then((res) {
-          final pos = messages.indexWhere((e) => e.id == messageId); // Can't assume it stays exactly @ 0.
-          messages[pos] = message.copyWith(showStatus: true, status: chat_types.Status.delivered);
-          return messages;
+          final pos = _messages.indexWhere((e) => e.id == messageId); // Can't assume it stays exactly @ 0.
+          _messages[pos] = message.copyWith(showStatus: true, status: chat_types.Status.delivered);
+          return _messages;
         })
         .onError((error, stackTrace) {
           // Still send back message w/ error state
-          final pos = messages.indexWhere((e) => e.id == messageId); // Can't assume it stays exactly @ 0.
-          messages[pos] = message.copyWith(status: chat_types.Status.error);
-          return messages;
+          final pos = _messages.indexWhere((e) => e.id == messageId); // Can't assume it stays exactly @ 0.
+          _messages[pos] = message.copyWith(status: chat_types.Status.error);
+          return _messages;
         });
   }
 
@@ -67,15 +92,7 @@ class ChatRepository {
           uri: json['message'],
           author: author,
           createdAt: json['timestamp'],
-        );
-      case "file":
-        return chat_types.FileMessage(
-          id: Uuid().v4(),
-          name: json['user'],
-          size: 0,
-          uri: json['message'],
-          author: author,
-          createdAt: json['timestamp'],
+          metadata: json['reactions'],
         );
       case "system":
         return chat_types.SystemMessage(id: Uuid().v4(), text: json['message'], createdAt: json['timestamp']);
@@ -86,6 +103,7 @@ class ChatRepository {
           text: json['message'],
           author: author,
           createdAt: json['timestamp'],
+          metadata: json['reactions'],
         );
     }
   }

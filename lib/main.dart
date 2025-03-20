@@ -30,6 +30,7 @@ Future<void> setUpMockAPI() async {
   //
   final RegExp getMessageRegExp = RegExp(r"^.+\/messages\?conversationId=(\d+)$");
   final RegExp postMessageRegExp = RegExp(r"^.+\/conversations\/(\d+)\/messages\/create$");
+  final RegExp reactMessageRegExp = RegExp(r"^.+\/conversations\/(\d+)\/messages\/reaction$");
 
   final chatData = await loadChatJson();
 
@@ -64,11 +65,12 @@ Future<void> setUpMockAPI() async {
           }
 
           // Extract conversation id
-          final targetID = int.parse(
+          final targetConvID = int.parse(
             getMessageRegExp.firstMatch(request.uri)!.group(1)!,
           ); // RegExp spits out String, need to parse to int
 
-          final targetMessages = (chatData['messages'] as List).where((e) => e['conversationId'] == targetID).toList();
+          final targetMessages =
+              (chatData['messages'] as List).where((e) => e['conversationId'] == targetConvID).toList();
           if (targetMessages.isEmpty) {
             return MockzillaHttpResponse(statusCode: 500);
           }
@@ -102,6 +104,49 @@ Future<void> setUpMockAPI() async {
           // Push to 'DB'
           (chatData["messages"] as List).add(msg); // Push to messages
           chatData["conversations"][convIdx] = convLastMessage;
+
+          return MockzillaHttpResponse(statusCode: 200);
+        },
+        errorHandler: (request) => const MockzillaHttpResponse(statusCode: 418),
+      ),
+
+      // Post Messages to specific Conversation
+      EndpointConfig(
+        name: "Message React",
+        endpointMatcher: (request) => (request.method == HttpMethod.patch && reactMessageRegExp.hasMatch(request.uri)),
+        delay: const Duration(seconds: 1),
+        defaultHandler: (request) {
+          // Check again if reg could get specific id
+          if (!reactMessageRegExp.hasMatch(request.uri)) {
+            return MockzillaHttpResponse(statusCode: 400);
+          }
+
+          // Declare data.
+          final Map<String, dynamic> msg = jsonDecode(request.body);
+          print("received: $msg");
+          final String reaction = msg["reaction"];
+          final String operation = msg["operation"];
+          final int hashIdentifier = msg['hashIdentifier'];
+          final msgIdx = (chatData["messages"] as List).indexWhere(
+            (e) =>
+                e['message'].hashCode ==
+                hashIdentifier, // Using dart's hash for now, all messages are supposed comes with key 'id'
+          );
+
+          // modify message data
+          final modifiedMessage = chatData["messages"][msgIdx];
+          if (operation == "add") {
+            modifiedMessage['reactions'][reaction] += 1;
+          } else {
+            modifiedMessage['reactions'][reaction] -= 1;
+            // This case should not happen but who knows.
+            if (modifiedMessage['reactions'][reaction] < 0) {
+              modifiedMessage['reactions'][reaction] = 0;
+            }
+          }
+
+          // Push to 'DB'
+          chatData["messages"][msgIdx] = modifiedMessage;
 
           return MockzillaHttpResponse(statusCode: 200);
         },

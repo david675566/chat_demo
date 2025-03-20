@@ -97,4 +97,21 @@ class ApiProvider {
           },
         );
   }
+
+  Future<Response> reactMessage(int conversationId, Map body) {
+    final uri = Uri.http(baseUrl, '/local-mock/conversations/$conversationId/messages/reaction');
+    debugPrint("Fetching from ${uri.toString()}");
+
+    return _dio
+        .postUri(uri, data: jsonEncode(body))
+        .then(
+          (value) {
+            return value;
+          },
+          onError: (value) {
+            debugPrint(value);
+            return Future.error(value);
+          },
+        );
+  }
 }

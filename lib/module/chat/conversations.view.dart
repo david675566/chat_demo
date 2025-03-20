@@ -1,3 +1,6 @@
+import 'package:avatar_stack/avatar_stack.dart';
+import 'package:avatar_stack/positions.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -72,17 +75,25 @@ class _ConversationsState extends State<ConversationsView> {
     return ListTile(
       onTap: () => context.goNamed("room", extra: {'id': data.id, 'participants': data.participants}),
       leading: Container(
-        width: 64,
+        width: 90,
         alignment: Alignment.centerLeft,
-        child: Stack(
-          children: [
-            Center(child: Avatar(from: data.participants.last)),
-            Positioned(right: 1.5, bottom: 8.1, child: CircleAvatar(radius: 3, backgroundColor: Colors.greenAccent)),
-          ],
+        child: AvatarStack(
+          avatars: data.participants.map((e) => CachedNetworkImageProvider(e.imageUrl!)).toList(),
+          settings: RestrictedPositions(maxCoverage: 0.7, minCoverage: -0.5, align: StackAlign.right), 
         ),
+        // Stack(
+        //   children: [
+        //     Center(child: Avatar(from: data.participants.last)),
+        //     Positioned(right: 1.5, bottom: 8.1, child: CircleAvatar(radius: 3, backgroundColor: Colors.greenAccent)),
+        //   ],
+        // ),
       ),
-      title: Text(data.lastMessage),
-      trailing: Text(Jiffy.parseFromDateTime(data.timestamp).fromNow(), style: TextStyle(color: Colors.grey)),
+      title: Text(data.participants.map((e) => e.firstName!).join('&')),
+      subtitle: Text(data.lastMessage),
+      trailing: Text(
+        Jiffy.parseFromDateTime(data.timestamp).fromNow(withPrefixAndSuffix: false),
+        style: TextStyle(color: Colors.grey),
+      ),
     );
 
     //

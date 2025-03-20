@@ -13,13 +13,14 @@ part 'chat.state.dart';
 
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ChatBloc({required ChatRepository chatRepository}) : _chatRepository = chatRepository, super(ChatInitial()) {
-    on<RequestGetChatHistory>(_onRequestConversations);
-    on<RequestPostTextChat>(_onPostConversations);
+    on<RequestGetMessages>(_onRequestMessages);
+    on<RequestPostTextMessage>(_onPostTextMessage);
+    on<RequestMessageReaction>(_onMessageReaction);
   }
 
   final ChatRepository _chatRepository;
 
-  FutureOr<void> _onRequestConversations(RequestGetChatHistory event, Emitter<ChatState> emit) async {
+  FutureOr<void> _onRequestMessages(RequestGetMessages event, Emitter<ChatState> emit) async {
     emit(FetchingChat());
     await _chatRepository
         .fetchMessages(event.conversationId)
@@ -27,10 +28,15 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         .onError((error, stacktrace) => emit(ChatLoadFailure(error: error, errorStr: error.toString())));
   }
 
-  FutureOr<void> _onPostConversations(RequestPostTextChat event, Emitter<ChatState> emit) async {
+  FutureOr<void> _onPostTextMessage(RequestPostTextMessage event, Emitter<ChatState> emit) async {
     emit.onEach(
       _chatRepository.postTextMessage(event.conversationId, event.message),
       onData: (result) => {emit(ChatReady(data: result))},
     );
+  }
+
+  FutureOr<void> _onMessageReaction(RequestMessageReaction event, Emitter<ChatState> emit) {
+    final result = _chatRepository.reactMessage(event.conversationId, event.targetMessage, event.reaction);
+    emit(ChatReady(data: result));
   }
 }
