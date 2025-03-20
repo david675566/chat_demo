@@ -1,6 +1,12 @@
 part of 'chat.bloc.dart';
 
 class ChatRepository {
+  final currentUser = chat_types.User(
+    id: "114514",
+    firstName: "David",
+    imageUrl: "https://gravatar.com/avatar/572097362be9eba959dd4471c15cf6c0b700c66648bc3a2814ac75827110d6a2",
+  );
+
   // would need a cache to temp. stores all histories.
   final List<chat_types.Message> messages = [];
 
@@ -60,6 +66,7 @@ class ChatRepository {
           size: 0,
           uri: json['message'],
           author: author,
+          createdAt: json['timestamp'],
         );
       case "file":
         return chat_types.FileMessage(
@@ -68,12 +75,18 @@ class ChatRepository {
           size: 0,
           uri: json['message'],
           author: author,
+          createdAt: json['timestamp'],
         );
       case "system":
-        return chat_types.SystemMessage(id: Uuid().v4(), text: json['message']);
+        return chat_types.SystemMessage(id: Uuid().v4(), text: json['message'], createdAt: json['timestamp']);
       case "text":
       default:
-        return chat_types.TextMessage(id: Uuid().v4(), text: json['message'], author: author);
+        return chat_types.TextMessage(
+          id: Uuid().v4(),
+          text: json['message'],
+          author: author,
+          createdAt: json['timestamp'],
+        );
     }
   }
 }

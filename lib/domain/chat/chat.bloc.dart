@@ -18,11 +18,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   }
 
   final ChatRepository _chatRepository;
-  final currentUser = chat_types.User(
-    id: "114514",
-    firstName: "David",
-    imageUrl: "https://gravatar.com/avatar/572097362be9eba959dd4471c15cf6c0b700c66648bc3a2814ac75827110d6a2",
-  );
 
   FutureOr<void> _onRequestConversations(RequestGetChatHistory event, Emitter<ChatState> emit) async {
     emit(FetchingChat());
