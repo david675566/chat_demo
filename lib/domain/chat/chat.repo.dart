@@ -17,6 +17,28 @@ class ChatRepository {
     '😆': 'laugh',
   };
 
+  // Simulate Live Chat
+  Stream<chat_types.Message> generateRandomMessage() async* {
+    final template = List<chat_types.Message>.from(_messages);
+    while (true) {
+      await Future.delayed(Duration(seconds: 3));
+      final msg = template[Random().nextInt(template.length)];
+      // _messages.insert(
+      //   0,
+      //   msg.copyWith(
+      //     id: Uuid().v4(),
+      //     createdAt: DateTime.now().millisecondsSinceEpoch,
+      //     metadata: {"like": 0, "love": 0, "laugh": 0},
+      //   ),
+      // );
+      yield msg.copyWith(
+          id: Uuid().v4(),
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          metadata: {"like": 0, "love": 0, "laugh": 0},
+        );
+    }
+  }
+
   // Get all messages
   Future<List<chat_types.Message>> fetchMessages(int conversationId) async {
     // get the messages
@@ -52,11 +74,13 @@ class ChatRepository {
     final targetMessage = _messages[targetIdx];
     String identifier;
     if (targetMessage is chat_types.ImageMessage) {
-      identifier = targetMessage.uri + targetMessage.author.firstName!;
-    } else {
       identifier =
-          (targetMessage as chat_types.TextMessage).text +
-          targetMessage.author.firstName!;
+          targetMessage.uri +
+          targetMessage.author.firstName! +
+          targetMessage.createdAt.toString();
+    } else {
+      final msg = targetMessage as chat_types.TextMessage;
+      identifier = msg.text + msg.author.firstName! + msg.createdAt.toString();
     }
     final body = {
       "reaction": emojiString,
@@ -70,25 +94,32 @@ class ChatRepository {
 
   // Post Message
   // Use one-shot stream to track sending progress.
-  Stream<List<chat_types.Message>> postTextMessage(
+  Stream<List<chat_types.Message>> postMessage(
     int conversationId,
-    chat_types.TextMessage message,
+    chat_types.Message message,
   ) async* {
     final messageId = message.id;
     _messages.insert(0, message);
     yield _messages;
 
+    final isImage = message is chat_types.ImageMessage;
+    String content = "";
+    if(isImage){
+      content = message.uri;
+    }else{
+      content = (message as chat_types.TextMessage).text;
+    }
+
     // I'm tend not to modify the original json, stay with the flow like I can't access backend.
     final body = {
       'conversationId': conversationId,
-      'userId': int.parse(currentUser.id),
-      'user': currentUser.firstName,
-      "avatar": currentUser.imageUrl,
-      "messageType": "text",
-      "message": message.text,
-      "reactions":
-          message.metadata?['reactions'] ?? {"like": 0, "love": 0, "laugh": 0},
-      "timestamp": DateTime.now().millisecondsSinceEpoch,
+      'userId': int.parse(message.author.id),
+      'user': message.author.firstName,
+      "avatar": message.author.imageUrl,
+      "messageType": (isImage) ? "image" : "text",
+      "message":content,
+      "reactions":message.metadata?['reactions'] ?? {"like": 0, "love": 0, "laugh": 0},
+      "timestamp": message.createdAt!,
     };
 
     // post messages

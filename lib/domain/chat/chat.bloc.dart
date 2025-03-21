@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:bloc/bloc.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as chat_types;
@@ -14,7 +15,7 @@ part 'chat.state.dart';
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ChatBloc({required ChatRepository chatRepository}) : _chatRepository = chatRepository, super(ChatInitial()) {
     on<RequestGetMessages>(_onRequestMessages);
-    on<RequestPostTextMessage>(_onPostTextMessage);
+    on<RequestPostMessage>(_onPostMessage);
     on<RequestMessageReaction>(_onMessageReaction);
   }
 
@@ -26,11 +27,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         .fetchMessages(event.conversationId)
         .then((result) => emit(ChatReady(data: result)))
         .onError((error, stacktrace) => emit(ChatLoadFailure(error: error, errorStr: error.toString())));
+    await emit.onEach(
+      _chatRepository.generateRandomMessage(), 
+      onData: (result) => {add(RequestPostMessage(conversationId: event.conversationId, message: result))},);
   }
 
-  FutureOr<void> _onPostTextMessage(RequestPostTextMessage event, Emitter<ChatState> emit) async {
-    emit.onEach(
-      _chatRepository.postTextMessage(event.conversationId, event.message),
+  FutureOr<void> _onPostMessage(RequestPostMessage event, Emitter<ChatState> emit) async {
+    await emit.onEach(
+      _chatRepository.postMessage(event.conversationId, event.message),
       onData: (result) => {emit(ChatReady(data: result))},
     );
   }

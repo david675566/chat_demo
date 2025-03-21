@@ -53,9 +53,9 @@ class _StateInputWidget extends State<InputWidget> {
                 (inputController.text.isEmpty)
                     ? null
                     : () {
-                      widget.onSendPressed(inputController.text.trim());
+                      final text = inputController.text.trim();
                       inputController.clear();
-                      setState(() {});
+                      widget.onSendPressed(text);
                     },
           ),
         ),

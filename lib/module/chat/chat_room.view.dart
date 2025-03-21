@@ -1,3 +1,4 @@
+import 'package:chat_demo/domain/conversation/conversation.bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as chat_types;
@@ -12,7 +13,6 @@ class ChatRoomView extends StatelessWidget {
   const ChatRoomView({required this.conversationId, required this.participants, super.key});
   final int conversationId;
   final List<chat_types.User> participants;
-
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +37,8 @@ class ChatRoomView extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final msg = messages[index];
                   final isOutgoing = (chatRepo.currentUser.id == msg.author.id);
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: (msg.metadata?.isNotEmpty??false)?30:0),
-                    child: MessageWidget(
+
+                  return MessageWidget(
                       message: messages[index],
                       isOutgoing: isOutgoing,
                       reactions: ChatRepository.emojiToStringMap.keys.toList(),
@@ -53,7 +52,6 @@ class ChatRoomView extends StatelessWidget {
                           ),
                       );
                     },
-                  ),
                   );
                 },
               ),
@@ -71,8 +69,9 @@ class ChatRoomView extends StatelessWidget {
                     createdAt: DateTime.now().millisecondsSinceEpoch,
                   );
                   context.read<ChatBloc>().add(
-                    RequestPostTextMessage(conversationId: conversationId, message: message),
+                    RequestPostMessage(conversationId: conversationId, message: message),
                   );
+                  context.read<ConversationBloc>().add(RequestGetConversations());
                 },
               )
             ),

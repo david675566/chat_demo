@@ -50,22 +50,25 @@ class MessageWidget extends StatelessWidget {
 
     if (message is chat_types.SystemMessage) {
       // System Message, no bubbles, @ center & must be italic
-      return ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: 18),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              (message as chat_types.SystemMessage).text,
-              softWrap: false,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-                fontStyle: FontStyle.italic,
+      return Padding(
+        padding: EdgeInsets.only(bottom: 30),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: 18),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                (message as chat_types.SystemMessage).text,
+                softWrap: false,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -74,65 +77,82 @@ class MessageWidget extends StatelessWidget {
     // UGC Messages.
     // with Emojis/Reactions
     //
-    return Row(
-      mainAxisAlignment:
-          (isOutgoing) ? MainAxisAlignment.end : MainAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        const SizedBox(width: 9),
-        buildPrefix(message: message),
-        const SizedBox(width: 12),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onLongPress: () {
-            Navigator.of(context).push(
-              HeroDialogRoute(
-                builder: (context) {
-                  return ReactionsDialogWidget(
-                    id: message.id, // unique id for message
-                    messageWidget: Align(
-                      alignment:
+
+    bool hasReactions = false;
+    if (message.metadata?.isEmpty ?? true) {
+      hasReactions = false;
+    } else {
+      // had to iterate through metadata to check if it has reactions
+      for (final item in message.metadata!.entries) {
+        if (item.value != 0) {
+          debugPrint("Reaction: ${item.key} - ${item.value}");
+          hasReactions = true;
+          break;
+        }
+      }
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: hasReactions ? 30 : 0),
+      child: Row(
+        mainAxisAlignment:
+            (isOutgoing) ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const SizedBox(width: 9),
+          buildPrefix(message: message),
+          const SizedBox(width: 12),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onLongPress: () {
+              Navigator.of(context).push(
+                HeroDialogRoute(
+                  builder: (context) {
+                    return ReactionsDialogWidget(
+                      id: message.id, // unique id for message
+                      messageWidget: Align(
+                        alignment:
+                            (isOutgoing)
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                        child: buildMessageBubble(messageWidth),
+                      ), // message widget
+                      widgetAlignment:
                           (isOutgoing)
                               ? Alignment.centerRight
                               : Alignment.centerLeft,
-                      child: buildMessageBubble(messageWidth),
-                    ), // message widget
-                    widgetAlignment:
-                        (isOutgoing)
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                    menuItems: [],
-                    reactions: reactions,
-                    onReactionTap: (reaction) => onReactionTap(reaction),
-                    onContextMenuTap: (menuItem) {
-                      print('menu item: $menuItem');
-                      // handle context menu item
-                    },
-                  );
-                },
-              ),
-            );
-          },
-          child: Stack(
-            alignment: AlignmentDirectional.bottomEnd,
-            clipBehavior: Clip.none,
-            children: [
-              Hero(tag: message.id, child: buildMessageBubble(messageWidth)),
+                      menuItems: [],
+                      reactions: reactions,
+                      onReactionTap: (reaction) => onReactionTap(reaction),
+                      onContextMenuTap: (menuItem) {
+                        print('menu item: $menuItem');
+                        // handle context menu item
+                      },
+                    );
+                  },
+                ),
+              );
+            },
+            child: Stack(
+              alignment: AlignmentDirectional.bottomEnd,
+              clipBehavior: Clip.none,
+              children: [
+                Hero(tag: message.id, child: buildMessageBubble(messageWidth)),
 
-              // Custom Reactions row w/ numbers
-              Positioned(
-                bottom: -30,
-                child: 
-              EmojiListWidget(message: message),
-              ),
-            ],
+                // Custom Reactions row w/ numbers
+                Positioned(
+                  bottom: -30,
+                  child: EmojiListWidget(message: message),
+                ),
+              ],
+            ),
           ),
-        ),
-        SizedBox(width: (showStatus) ? 3 : 12),
-        buildSuffix(message: message),
-        if (showStatus) const SizedBox(width: 3),
-      ],
+          SizedBox(width: (showStatus) ? 3 : 12),
+          buildSuffix(message: message),
+          if (showStatus) const SizedBox(width: 3),
+        ],
+      ),
     );
   }
 
@@ -234,9 +254,7 @@ class MessageContentWidget extends StatelessWidget {
 
     // assume it's all text.
     return chat_ui.TextMessageText(
-      options: chat_ui.TextMessageOptions(
-        isTextSelectable: false,
-      ),
+      options: chat_ui.TextMessageOptions(isTextSelectable: false),
       bodyTextStyle: TextStyle(
         fontSize: 14,
         color: (isOutgoing) ? Colors.white : Colors.black,
@@ -259,6 +277,18 @@ class EmojiListWidget extends StatelessWidget {
     final emojiList = ChatRepository.emojiToStringMap.entries;
     final messageReactions = message.metadata!.entries;
 
+    final List<Widget> reactions = [];
+    // Iterate through all reactions and display them
+    for (final item in messageReactions) {
+      if (item.value == 0) continue;
+      final emoji = emojiList.firstWhere((e) => e.value == item.key);
+      reactions.add(_buildContent(emoji.key, item.value));
+    }
+
+    if (reactions.isEmpty) {
+      return const SizedBox();
+    }
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.1,
@@ -271,13 +301,7 @@ class EmojiListWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         spacing: 9,
-        children:
-            // Iterate through all reactions and display them
-            messageReactions.map<Widget>((item) {
-              // find the corresponding emoji
-              final emoji = emojiList.firstWhere((e) => e.value == item.key);
-              return _buildContent(emoji.key, item.value);
-            }).toList(),
+        children: reactions,
       ),
     );
   }
