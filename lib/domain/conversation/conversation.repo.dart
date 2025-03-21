@@ -27,7 +27,7 @@ class ConversationRepository {
       'participants': newConv.participants.map((e) => e.id).toList(),
       'timestamp': newConv.timestamp.millisecondsSinceEpoch,
     };
-    final res = await ApiProvider().createConversation(body);
+    await ApiProvider().createConversation(body);
     return _conversations;
   }
 }

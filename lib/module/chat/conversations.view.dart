@@ -35,38 +35,38 @@ class _ConversationsState extends State<ConversationsView> {
               appBar: AppBar(
                 title: Text("Chat Demo App"),
                 actions: [
-                  if (state is ConversationReady)
-                    IconButton(
-                      icon: Icon(Icons.add),
-                      // show a dialog to add new conversation (local)
-                      onPressed:
-                          () => showDialog<bool>(
-                            context: context,
-                            builder:
-                                (_) => BlocProvider.value(
-                                  value: context.read<ConversationBloc>(),
-                                  child: AlertDialog(
-                                    title: Text("Add New Conversation?"),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () {
-                                          final newId = state.data.length + 2;
-                                          Navigator.of(context).pop();
-                                          context.read<ConversationBloc>().add(RequestNewConversation());
-                                          context.goNamed("room", extra: {'id': newId, 'participants': []});
-                                        },
-                                        child: Text("Yes"),
-                                      ),
-                                      TextButton(
-                                        onPressed:
-                                            () => Navigator.of(context).pop(),
-                                        child: Text("Close"),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                          ),
-                    ),
+                  // if (state is ConversationReady)
+                  //   IconButton(
+                  //     icon: Icon(Icons.add),
+                  //     // show a dialog to add new conversation (local)
+                  //     onPressed:
+                  //         () => showDialog<bool>(
+                  //           context: context,
+                  //           builder:
+                  //               (_) => BlocProvider.value(
+                  //                 value: context.read<ConversationBloc>(),
+                  //                 child: AlertDialog(
+                  //                   title: Text("Add New Conversation?"),
+                  //                   actions: [
+                  //                     TextButton(
+                  //                       onPressed: () {
+                  //                         final newId = state.data.length + 2;
+                  //                         Navigator.of(context).pop();
+                  //                         context.read<ConversationBloc>().add(RequestNewConversation());
+                  //                         context.goNamed("room", extra: {'id': newId, 'participants': [ChatRepository().currentUser]});
+                  //                       },
+                  //                       child: Text("Yes"),
+                  //                     ),
+                  //                     TextButton(
+                  //                       onPressed:
+                  //                           () => Navigator.of(context).pop(),
+                  //                       child: Text("Close"),
+                  //                     ),
+                  //                   ],
+                  //                 ),
+                  //               ),
+                  //         ),
+                  //   ),
                   IconButton(
                     icon: Avatar(from: ChatRepository().currentUser),
                     onPressed:
