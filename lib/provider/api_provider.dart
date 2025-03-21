@@ -55,9 +55,26 @@ class ApiProvider {
         );
   }
 
+  Future<Response> createConversation(Map convBody){
+    final uri = Uri.http(baseUrl, '/conversations/create');
+    debugPrint("Posting from ${uri.toString()}");
+
+    return _dio
+        .postUri(uri, data: convBody)
+        .then(
+          (value) {
+            return value;
+          },
+          onError: (value) {
+            debugPrint(value);
+            return Future.error(value);
+          },
+        );
+  }
+
   Future<Response> postMessage(int conversationId, Map messageJson) {
     final uri = Uri.http(baseUrl, '/conversations/$conversationId/messages/create');
-    debugPrint("Fetching from ${uri.toString()}");
+    debugPrint("Posting from ${uri.toString()}");
 
     return _dio
         .postUri(uri, data: messageJson)
@@ -74,7 +91,7 @@ class ApiProvider {
 
   Future<Response> reactMessage(int conversationId, Map body) {
     final uri = Uri.http(baseUrl, '/conversations/$conversationId/messages/reaction');
-    debugPrint("Fetching from ${uri.toString()}");
+    debugPrint("Patching from ${uri.toString()}");
 
     return _dio
         .patchUri(uri, data: body)

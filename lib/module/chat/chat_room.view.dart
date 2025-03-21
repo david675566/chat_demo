@@ -10,9 +10,10 @@ import 'package:chat_demo/widget/chat_input.dart';
 import 'package:chat_demo/widget/message_bubble.dart';
 
 class ChatRoomView extends StatelessWidget {
-  const ChatRoomView({required this.conversationId, required this.participants, super.key});
+  const ChatRoomView({required this.conversationId, required this.participants, super.key, this.useNonBubbleSystemMessage = false});
   final int conversationId;
   final List<chat_types.User> participants;
+  final bool useNonBubbleSystemMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +43,7 @@ class ChatRoomView extends StatelessWidget {
                       message: messages[index],
                       isOutgoing: isOutgoing,
                       reactions: ChatRepository.emojiToStringMap.keys.toList(),
+                      useNonBubbleSystemMessage: true, // Change this if you want to use the non-bubble system message
                       onReactionTap: (reaction) {
                         print("Reaction: $reaction");
                         context.read<ChatBloc>().add(

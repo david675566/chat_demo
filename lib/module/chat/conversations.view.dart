@@ -1,6 +1,8 @@
 import 'package:avatar_stack/avatar_stack.dart';
 import 'package:avatar_stack/positions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:chat_demo/domain/chat/chat.bloc.dart';
+import 'package:chat_demo/widget/user_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -20,36 +22,98 @@ class ConversationsView extends StatefulWidget {
 class _ConversationsState extends State<ConversationsView> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Chat Demo App")),
-      body: SafeArea(
-        child: BlocProvider<ConversationBloc>(
-          create: (context) {
-            return ConversationBloc(convRepository: ConversationRepository())..add(RequestGetConversations());
-          },
-          child: BlocBuilder<ConversationBloc, ConversationState>(
-            buildWhen: (previous, current) => previous.runtimeType != current.runtimeType,
-            builder:
-                (context, state) => RefreshIndicator.adaptive(
+    return BlocProvider<ConversationBloc>(
+      create: (context) {
+        return ConversationBloc(convRepository: ConversationRepository())
+          ..add(RequestGetConversations());
+      },
+      child: BlocBuilder<ConversationBloc, ConversationState>(
+        buildWhen:
+            (previous, current) => previous.runtimeType != current.runtimeType,
+        builder:
+            (context, state) => Scaffold(
+              appBar: AppBar(
+                title: Text("Chat Demo App"),
+                actions: [
+                  if (state is ConversationReady)
+                    IconButton(
+                      icon: Icon(Icons.add),
+                      // show a dialog to add new conversation (local)
+                      onPressed:
+                          () => showDialog<bool>(
+                            context: context,
+                            builder:
+                                (_) => BlocProvider.value(
+                                  value: context.read<ConversationBloc>(),
+                                  child: AlertDialog(
+                                    title: Text("Add New Conversation?"),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          final newId = state.data.length + 2;
+                                          Navigator.of(context).pop();
+                                          context.read<ConversationBloc>().add(RequestNewConversation());
+                                          context.goNamed("room", extra: {'id': newId, 'participants': []});
+                                        },
+                                        child: Text("Yes"),
+                                      ),
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.of(context).pop(),
+                                        child: Text("Close"),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                          ),
+                    ),
+                  IconButton(
+                    icon: Avatar(from: ChatRepository().currentUser),
+                    onPressed:
+                        () => ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              "Current User: ${ChatRepository().currentUser.firstName!} (Debug Use)",
+                            ),
+                          ),
+                        ),
+                  ),
+                ],
+              ),
+              body: SafeArea(
+                child: RefreshIndicator.adaptive(
                   onRefresh: () async {
-                    Future block = context.read<ConversationBloc>().stream.first;
-                    context.read<ConversationBloc>().add(RequestGetConversations());
+                    Future block =
+                        context.read<ConversationBloc>().stream.first;
+                    context.read<ConversationBloc>().add(
+                      RequestGetConversations(),
+                    );
                     await block;
                   },
                   child: CustomScrollView(
                     slivers: [
-                      const SliverToBoxAdapter(child: SizedBox(height: 36)), // padding
+                      const SliverToBoxAdapter(
+                        child: SizedBox(height: 36),
+                      ), // padding
                       // When everything ready
                       if (state is ConversationReady)
                         SliverList.separated(
-                          separatorBuilder: (context, index) => const SizedBox(height: 12),
+                          separatorBuilder:
+                              (context, index) => const SizedBox(height: 12),
                           itemCount: state.data.length,
-                          itemBuilder: (context, index) => _buildChatTile(state.data[index]),
+                          itemBuilder:
+                              (context, index) =>
+                                  _buildChatTile(state.data[index]),
                         ),
 
                       // When still loading
-                      if (state is ConversationInitial || state is FetchingConversation)
-                        SliverToBoxAdapter(child: Center(child: CircularProgressIndicator.adaptive())),
+                      if (state is ConversationInitial ||
+                          state is FetchingConversation)
+                        SliverToBoxAdapter(
+                          child: Center(
+                            child: CircularProgressIndicator.adaptive(),
+                          ),
+                        ),
 
                       // When failed, shows a red line of error string
                       if (state is ConversationLoadFailure)
@@ -64,21 +128,32 @@ class _ConversationsState extends State<ConversationsView> {
                     ],
                   ),
                 ),
-          ),
-        ),
+              ),
+            ),
       ),
     );
   }
 
   Widget _buildChatTile(ConversationModel data) {
     return ListTile(
-      onTap: () => context.goNamed("room", extra: {'id': data.id, 'participants': data.participants}),
+      onTap:
+          () => context.goNamed(
+            "room",
+            extra: {'id': data.id, 'participants': data.participants},
+          ),
       leading: Container(
         width: 90,
         alignment: Alignment.centerLeft,
         child: AvatarStack(
-          avatars: data.participants.map((e) => CachedNetworkImageProvider(e.imageUrl!)).toList(),
-          settings: RestrictedPositions(maxCoverage: 0.7, minCoverage: -0.5, align: StackAlign.right), 
+          avatars:
+              data.participants
+                  .map((e) => CachedNetworkImageProvider(e.imageUrl!))
+                  .toList(),
+          settings: RestrictedPositions(
+            maxCoverage: 0.7,
+            minCoverage: -0.5,
+            align: StackAlign.right,
+          ),
         ),
         // Stack(
         //   children: [
@@ -90,7 +165,9 @@ class _ConversationsState extends State<ConversationsView> {
       title: Text(data.participants.map((e) => e.firstName!).join('&')),
       subtitle: Text(data.lastMessage),
       trailing: Text(
-        Jiffy.parseFromDateTime(data.timestamp).fromNow(withPrefixAndSuffix: false),
+        Jiffy.parseFromDateTime(
+          data.timestamp,
+        ).fromNow(withPrefixAndSuffix: false),
         style: TextStyle(color: Colors.grey),
       ),
     );

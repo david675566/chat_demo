@@ -26,11 +26,13 @@ class MessageWidget extends StatelessWidget {
     this.isOutgoing = false,
     required this.onReactionTap,
     required this.reactions,
+    this.useNonBubbleSystemMessage = false,
   });
   final chat_types.Message message;
   final bool isOutgoing;
   final List<String> reactions;
   final void Function(String) onReactionTap;
+  final bool useNonBubbleSystemMessage;
 
   static const iconSize = 12.0;
 
@@ -48,7 +50,7 @@ class MessageWidget extends StatelessWidget {
     final messageWidth = MediaQuery.sizeOf(context).width * 0.6;
     final showStatus = (message.showStatus ?? false);
 
-    if (message is chat_types.SystemMessage) {
+    if (message is chat_types.SystemMessage && useNonBubbleSystemMessage) {
       // System Message, no bubbles, @ center & must be italic
       return Padding(
         padding: EdgeInsets.only(bottom: 30),
@@ -138,7 +140,10 @@ class MessageWidget extends StatelessWidget {
               alignment: AlignmentDirectional.bottomEnd,
               clipBehavior: Clip.none,
               children: [
-                Hero(tag: message.id, child: buildMessageBubble(messageWidth)),
+                Hero(
+                  tag: message.id,
+                  child: buildMessageBubble(messageWidth),
+                ),
 
                 // Custom Reactions row w/ numbers
                 Positioned(
@@ -252,11 +257,25 @@ class MessageContentWidget extends StatelessWidget {
       );
     }
 
-    // assume it's all text.
+
+    // System Message, must be italic
+    if (message is chat_types.SystemMessage) {
+      return chat_ui.TextMessageText(
+        options: chat_ui.TextMessageOptions(isTextSelectable: false),
+        bodyTextStyle: TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+            fontStyle: FontStyle.italic,
+          ),
+        text: (message as chat_types.SystemMessage).text,
+      );
+    }
+
+    // Regular Text Message
     return chat_ui.TextMessageText(
       options: chat_ui.TextMessageOptions(isTextSelectable: false),
       bodyTextStyle: TextStyle(
-        fontSize: 14,
+        fontSize: 12,
         color: (isOutgoing) ? Colors.white : Colors.black,
       ),
       text: (message as chat_types.TextMessage).text,
