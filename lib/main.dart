@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:bloc/bloc.dart';
-import 'package:mockzilla/mockzilla.dart'; // mock api
 
 // local
 import 'package:chat_demo/router/router.dart';

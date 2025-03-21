@@ -1,3 +1,4 @@
+import 'package:chat_demo/domain/chat/chat.bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -34,8 +35,10 @@ class MessageWidget extends StatelessWidget {
   static const iconSize = 12.0;
 
   // message timestamp
-  Widget buildTime(int createdAt) =>
-      Text(Jiffy.parseFromMillisecondsSinceEpoch(createdAt).Hm, style: TextStyle(color: Colors.grey, fontSize: 14));
+  Widget buildTime(int createdAt) => Text(
+    Jiffy.parseFromMillisecondsSinceEpoch(createdAt).Hm,
+    style: TextStyle(color: Colors.grey, fontSize: 14),
+  );
 
   // message author avatar
   Widget buildAvatar(chat_types.User author) => Avatar(from: author);
@@ -56,7 +59,11 @@ class MessageWidget extends StatelessWidget {
             Text(
               (message as chat_types.SystemMessage).text,
               softWrap: false,
-              style: TextStyle(fontSize: 14, color: Colors.grey, fontStyle: FontStyle.italic),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
         ),
@@ -68,7 +75,8 @@ class MessageWidget extends StatelessWidget {
     // with Emojis/Reactions
     //
     return Row(
-      mainAxisAlignment: (isOutgoing) ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment:
+          (isOutgoing) ? MainAxisAlignment.end : MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -84,10 +92,16 @@ class MessageWidget extends StatelessWidget {
                   return ReactionsDialogWidget(
                     id: message.id, // unique id for message
                     messageWidget: Align(
-                      alignment: (isOutgoing) ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment:
+                          (isOutgoing)
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
                       child: buildMessageBubble(messageWidth),
                     ), // message widget
-                    widgetAlignment: (isOutgoing) ? Alignment.centerRight : Alignment.centerLeft,
+                    widgetAlignment:
+                        (isOutgoing)
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                     menuItems: [],
                     reactions: reactions,
                     onReactionTap: (reaction) => onReactionTap(reaction),
@@ -100,7 +114,20 @@ class MessageWidget extends StatelessWidget {
               ),
             );
           },
-          child: Hero(tag: message.id, child: buildMessageBubble(messageWidth)),
+          child: Stack(
+            alignment: AlignmentDirectional.bottomEnd,
+            clipBehavior: Clip.none,
+            children: [
+              Hero(tag: message.id, child: buildMessageBubble(messageWidth)),
+
+              // Custom Reactions row w/ numbers
+              Positioned(
+                bottom: -30,
+                child: 
+              EmojiListWidget(message: message),
+              ),
+            ],
+          ),
         ),
         SizedBox(width: (showStatus) ? 3 : 12),
         buildSuffix(message: message),
@@ -120,12 +147,20 @@ class MessageWidget extends StatelessWidget {
       child: Container(
         constraints: BoxConstraints(maxWidth: messageWidth),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!isOutgoing)
-              Text(message.author.firstName!, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            MessageContentWidget(message: message, isOutgoing: isOutgoing, messageWidth: messageWidth),
+              Text(
+                message.author.firstName!,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            MessageContentWidget(
+              message: message,
+              isOutgoing: isOutgoing,
+              messageWidth: messageWidth,
+            ),
           ],
         ),
       ),
@@ -148,11 +183,19 @@ class MessageWidget extends StatelessWidget {
     // Message status
     switch (message.status) {
       case chat_types.Status.sending:
-        return SizedBox(width: iconSize, height: iconSize, child: CircularProgressIndicator.adaptive(strokeWidth: 1));
+        return SizedBox(
+          width: iconSize,
+          height: iconSize,
+          child: CircularProgressIndicator.adaptive(strokeWidth: 1),
+        );
       case chat_types.Status.delivered:
         return Icon(CupertinoIcons.check_mark, size: iconSize);
       case chat_types.Status.error:
-        return Icon(CupertinoIcons.clear_circled, size: iconSize, color: Colors.redAccent);
+        return Icon(
+          CupertinoIcons.clear_circled,
+          size: iconSize,
+          color: Colors.redAccent,
+        );
       default:
         return SizedBox();
     }
@@ -160,7 +203,12 @@ class MessageWidget extends StatelessWidget {
 }
 
 class MessageContentWidget extends StatelessWidget {
-  const MessageContentWidget({super.key, required this.message, this.isOutgoing = false, required this.messageWidth});
+  const MessageContentWidget({
+    super.key,
+    required this.message,
+    this.isOutgoing = false,
+    required this.messageWidth,
+  });
   final chat_types.Message message;
   final bool isOutgoing; // to determine theme.
   final double messageWidth;
@@ -171,19 +219,78 @@ class MessageContentWidget extends StatelessWidget {
     if (message is chat_types.ImageMessage) {
       final msg = (message as chat_types.ImageMessage);
       return GestureDetector(
-        onTap: () => debugPrint("Supposed to have a full screen here but chat_ui didn't expose all the model out."),
+        onTap:
+            () => debugPrint(
+              "Supposed to have a full screen here but chat_ui didn't expose all the model out.",
+            ),
         child: CachedNetworkImage(
           imageUrl: msg.uri,
           progressIndicatorBuilder:
-              (context, url, progress) => CircularProgressIndicator.adaptive(value: progress.progress),
+              (context, url, progress) =>
+                  CircularProgressIndicator.adaptive(value: progress.progress),
         ),
       );
     }
 
     // assume it's all text.
     return chat_ui.TextMessageText(
-      bodyTextStyle: TextStyle(fontSize: 14, color: (isOutgoing) ? Colors.white : Colors.black),
+      options: chat_ui.TextMessageOptions(
+        isTextSelectable: false,
+      ),
+      bodyTextStyle: TextStyle(
+        fontSize: 14,
+        color: (isOutgoing) ? Colors.white : Colors.black,
+      ),
       text: (message as chat_types.TextMessage).text,
+    );
+  }
+}
+
+class EmojiListWidget extends StatelessWidget {
+  const EmojiListWidget({super.key, required this.message});
+  final chat_types.Message message;
+
+  @override
+  Widget build(BuildContext context) {
+    if (message.metadata?.isEmpty ?? true) {
+      return const SizedBox();
+    }
+
+    final emojiList = ChatRepository.emojiToStringMap.entries;
+    final messageReactions = message.metadata!.entries;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.1,
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withAlpha(128),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: 9,
+        children:
+            // Iterate through all reactions and display them
+            messageReactions.map<Widget>((item) {
+              // find the corresponding emoji
+              final emoji = emojiList.firstWhere((e) => e.value == item.key);
+              return _buildContent(emoji.key, item.value);
+            }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildContent(String emoji, int counts) {
+    return Row(
+      children: [
+        // Reaction Icon
+        Text(emoji),
+        const SizedBox(width: 1),
+        // Reaction Counts
+        Text(counts.toString(), style: TextStyle(color: Colors.white)),
+      ],
     );
   }
 }

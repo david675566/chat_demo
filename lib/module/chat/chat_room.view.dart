@@ -38,11 +38,11 @@ class ChatRoomView extends StatelessWidget {
                   final msg = messages[index];
                   final isOutgoing = (chatRepo.currentUser.id == msg.author.id);
                   return Padding(
-                        padding: const EdgeInsets.all(3),
+                    padding: EdgeInsets.only(bottom: (msg.metadata?.isNotEmpty??false)?30:0),
                     child: MessageWidget(
                       message: messages[index],
                       isOutgoing: isOutgoing,
-                      reactions: chatRepo.emojiToStringMap.keys.toList(),
+                      reactions: ChatRepository.emojiToStringMap.keys.toList(),
                       onReactionTap: (reaction) {
                         print("Reaction: $reaction");
                         context.read<ChatBloc>().add(
@@ -53,7 +53,7 @@ class ChatRoomView extends StatelessWidget {
                           ),
                       );
                     },
-                    ),
+                  ),
                   );
                 },
               ),
@@ -61,7 +61,7 @@ class ChatRoomView extends StatelessWidget {
             bottomNavigationBar: BottomAppBar(
               child: InputWidget(
                 onSendPressed: (text) {
-                  print(text);
+                  debugPrint("Sending: $text");
                   final message = chat_types.TextMessage(
                     id: Uuid().v4(),
                     author: chatRepo.currentUser,

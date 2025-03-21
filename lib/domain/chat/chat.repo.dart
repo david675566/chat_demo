@@ -4,13 +4,18 @@ class ChatRepository {
   final currentUser = chat_types.User(
     id: "114514",
     firstName: "David",
-    imageUrl: "https://gravatar.com/avatar/572097362be9eba959dd4471c15cf6c0b700c66648bc3a2814ac75827110d6a2",
+    imageUrl:
+        "https://gravatar.com/avatar/572097362be9eba959dd4471c15cf6c0b700c66648bc3a2814ac75827110d6a2",
   );
 
   // would need a cache to temp. stores all histories.
   final List<chat_types.Message> _messages = [];
 
-  Map<String, String> emojiToStringMap = {'👍': 'like', '❤️': 'love', '😆': 'laugh'};
+  static const Map<String, String> emojiToStringMap = {
+    '👍': 'like',
+    '❤️': 'love',
+    '😆': 'laugh',
+  };
 
   // Get all messages
   Future<List<chat_types.Message>> fetchMessages(int conversationId) async {
@@ -22,20 +27,42 @@ class ChatRepository {
   }
 
   // Message Reaction
-  List<chat_types.Message> reactMessage(int conversationId, String messageId, String reaction) {
+  List<chat_types.Message> reactMessage(
+    int conversationId,
+    String messageId,
+    String reaction,
+  ) {
     final emojiString = emojiToStringMap[reaction];
+    if (emojiString == null) {
+      return _messages;
+    }
+
     // modify local cache
-    final targetIdx = _messages.indexWhere((element) => element.id == messageId);
-    _messages[targetIdx].metadata?[emojiString!] += 1;
+    final targetIdx = _messages.indexWhere(
+      (element) => element.id == messageId,
+    );
+    if (_messages[targetIdx].metadata?.isEmpty ?? true) {
+      // Append all reactions map to the message metadata
+      _messages[targetIdx] = _messages[targetIdx].copyWith(
+        metadata: emojiToStringMap.map((key, value) => MapEntry(value, 0)),
+      );
+    }
+    _messages[targetIdx].metadata?[emojiString] += 1;
 
     final targetMessage = _messages[targetIdx];
     String identifier;
     if (targetMessage is chat_types.ImageMessage) {
-      identifier = targetMessage.uri+targetMessage.author.firstName!;
+      identifier = targetMessage.uri + targetMessage.author.firstName!;
     } else {
-      identifier = (targetMessage as chat_types.TextMessage).text+targetMessage.author.firstName!;
+      identifier =
+          (targetMessage as chat_types.TextMessage).text +
+          targetMessage.author.firstName!;
     }
-    final body = {"reaction": emojiString, "operation": "add", "identifier": identifier};
+    final body = {
+      "reaction": emojiString,
+      "operation": "add",
+      "identifier": identifier,
+    };
 
     ApiProvider().reactMessage(conversationId, body);
     return _messages;
@@ -43,7 +70,10 @@ class ChatRepository {
 
   // Post Message
   // Use one-shot stream to track sending progress.
-  Stream<List<chat_types.Message>> postTextMessage(int conversationId, chat_types.TextMessage message) async* {
+  Stream<List<chat_types.Message>> postTextMessage(
+    int conversationId,
+    chat_types.TextMessage message,
+  ) async* {
     final messageId = message.id;
     _messages.insert(0, message);
     yield _messages;
@@ -56,7 +86,8 @@ class ChatRepository {
       "avatar": currentUser.imageUrl,
       "messageType": "text",
       "message": message.text,
-      "reactions": message.metadata?['reactions'] ?? {"like": 0, "love": 0, "laugh": 0},
+      "reactions":
+          message.metadata?['reactions'] ?? {"like": 0, "love": 0, "laugh": 0},
       "timestamp": DateTime.now().millisecondsSinceEpoch,
     };
 
@@ -64,13 +95,20 @@ class ChatRepository {
     yield await ApiProvider()
         .postMessage(conversationId, body)
         .then((res) {
-          final pos = _messages.indexWhere((e) => e.id == messageId); // Can't assume it stays exactly @ 0.
-          _messages[pos] = message.copyWith(showStatus: true, status: chat_types.Status.delivered);
+          final pos = _messages.indexWhere(
+            (e) => e.id == messageId,
+          ); // Can't assume it stays exactly @ 0.
+          _messages[pos] = message.copyWith(
+            showStatus: true,
+            status: chat_types.Status.delivered,
+          );
           return _messages;
         })
         .onError((error, stackTrace) {
           // Still send back message w/ error state
-          final pos = _messages.indexWhere((e) => e.id == messageId); // Can't assume it stays exactly @ 0.
+          final pos = _messages.indexWhere(
+            (e) => e.id == messageId,
+          ); // Can't assume it stays exactly @ 0.
           _messages[pos] = message.copyWith(status: chat_types.Status.error);
           return _messages;
         });
@@ -95,7 +133,11 @@ class ChatRepository {
           metadata: json['reactions'],
         );
       case "system":
-        return chat_types.SystemMessage(id: Uuid().v4(), text: json['message'], createdAt: json['timestamp']);
+        return chat_types.SystemMessage(
+          id: Uuid().v4(),
+          text: json['message'],
+          createdAt: json['timestamp'],
+        );
       case "text":
       default:
         return chat_types.TextMessage(
