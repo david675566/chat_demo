@@ -72,6 +72,7 @@ class _ConversationsState extends State<ConversationsView> {
                     onPressed:
                         () => ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
+                            duration: Duration(milliseconds: 1500),
                             content: Text(
                               "Current User: ${ChatRepository().currentUser.firstName!} (Debug Use)",
                             ),
