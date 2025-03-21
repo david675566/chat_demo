@@ -9,7 +9,7 @@ class ChatRepository {
   );
 
   // would need a cache to temp. stores all histories.
-  final List<chat_types.Message> _messages = [];
+  final List<chat_types.Message> messages = [];
 
   static const Map<String, String> emojiToStringMap = {
     '👍': 'like',
@@ -19,18 +19,10 @@ class ChatRepository {
 
   // Simulate Live Chat
   Stream<chat_types.Message> generateRandomMessage() async* {
-    final template = List<chat_types.Message>.from(_messages);
+    final template = List<chat_types.Message>.from(messages.where((e) => e.author != currentUser));
     while (true) {
       await Future.delayed(Duration(seconds: 3));
       final msg = template[Random().nextInt(template.length)];
-      // _messages.insert(
-      //   0,
-      //   msg.copyWith(
-      //     id: Uuid().v4(),
-      //     createdAt: DateTime.now().millisecondsSinceEpoch,
-      //     metadata: {"like": 0, "love": 0, "laugh": 0},
-      //   ),
-      // );
       yield msg.copyWith(
           id: Uuid().v4(),
           createdAt: DateTime.now().millisecondsSinceEpoch,
@@ -43,9 +35,9 @@ class ChatRepository {
   Future<List<chat_types.Message>> fetchMessages(int conversationId) async {
     // get the messages
     final res = await ApiProvider().fetchMessages(conversationId);
-    _messages.clear();
-    _messages.addAll(res.map((e) => fromChatJson(e)).toList().reversed);
-    return _messages;
+    messages.clear();
+    messages.addAll(res.map((e) => fromChatJson(e)).toList().reversed);
+    return messages;
   }
 
   // Message Reaction
@@ -56,22 +48,25 @@ class ChatRepository {
   ) {
     final emojiString = emojiToStringMap[reaction];
     if (emojiString == null) {
-      return _messages;
+      return messages;
     }
 
     // modify local cache
-    final targetIdx = _messages.indexWhere(
+    final targetIdx = messages.indexWhere(
       (element) => element.id == messageId,
     );
-    if (_messages[targetIdx].metadata?.isEmpty ?? true) {
+    if(targetIdx == -1){
+      return messages;
+    }
+    if (messages[targetIdx].metadata?.isEmpty ?? true) {
       // Append all reactions map to the message metadata
-      _messages[targetIdx] = _messages[targetIdx].copyWith(
+      messages[targetIdx] = messages[targetIdx].copyWith(
         metadata: emojiToStringMap.map((key, value) => MapEntry(value, 0)),
       );
     }
-    _messages[targetIdx].metadata?[emojiString] += 1;
+    messages[targetIdx].metadata?[emojiString] += 1;
 
-    final targetMessage = _messages[targetIdx];
+    final targetMessage = messages[targetIdx];
     String identifier;
     if (targetMessage is chat_types.ImageMessage) {
       identifier =
@@ -89,7 +84,7 @@ class ChatRepository {
     };
 
     ApiProvider().reactMessage(conversationId, body);
-    return _messages;
+    return messages;
   }
 
   // Post Message
@@ -99,8 +94,8 @@ class ChatRepository {
     chat_types.Message message,
   ) async* {
     final messageId = message.id;
-    _messages.insert(0, message);
-    yield _messages;
+    messages.insert(0, message);
+    yield messages;
 
     final isImage = message is chat_types.ImageMessage;
     String content = "";
@@ -126,22 +121,22 @@ class ChatRepository {
     yield await ApiProvider()
         .postMessage(conversationId, body)
         .then((res) {
-          final pos = _messages.indexWhere(
+          final pos = messages.indexWhere(
             (e) => e.id == messageId,
           ); // Can't assume it stays exactly @ 0.
-          _messages[pos] = message.copyWith(
+          messages[pos] = message.copyWith(
             showStatus: true,
             status: chat_types.Status.delivered,
           );
-          return _messages;
+          return messages;
         })
         .onError((error, stackTrace) {
           // Still send back message w/ error state
-          final pos = _messages.indexWhere(
+          final pos = messages.indexWhere(
             (e) => e.id == messageId,
           ); // Can't assume it stays exactly @ 0.
-          _messages[pos] = message.copyWith(status: chat_types.Status.error);
-          return _messages;
+          messages[pos] = message.copyWith(status: chat_types.Status.error);
+          return messages;
         });
   }
 

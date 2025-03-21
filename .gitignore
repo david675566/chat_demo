@@ -44,5 +44,5 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# My little secret~ (nah it's just my ip for real.)
-/lib/secret/
+# Keep secrets out of git
+/lib/secret*

@@ -1,9 +1,11 @@
 import 'dart:async';
 
-import 'package:chat_demo/secret/secret.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+
+// local
+import 'package:chat_demo/secret.dart';
 
 class ApiProvider {
   static const String baseUrl = secretBaseUrl;
